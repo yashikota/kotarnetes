@@ -17,6 +17,7 @@ Ubuntu 24.04
 
 ```bash
 sh setup.sh
+newgrp incus-admin
 ```
 
 これにより、Incusがインストールされ、cloud-initを使用して以下のVMが作成されます
