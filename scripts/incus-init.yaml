@@ -14,7 +14,9 @@ storage_pools:
   name: default
   driver: btrfs
 profiles:
-- config: {}
+- config:
+    limits.cpu: "2"
+    limits.memory: 4GiB
   description: ""
   devices:
     eth0:
