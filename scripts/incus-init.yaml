@@ -9,7 +9,7 @@ networks:
   project: default
 storage_pools:
 - config:
-    size: 300GiB
+    size: 200GiB
   description: ""
   name: default
   driver: btrfs
