@@ -23,18 +23,18 @@ Ubuntu 24.04
 ### 1. VMの作成
 
 ```bash
-sh scripts/incus-init.sh
+sh scripts/vm.sh
 newgrp incus-admin
 ```
 
 これにより、Incusがインストールされ、cloud-initを使用して以下のVMが作成されます
 
-- k8s-master （マスターノード）
-- k8s-worker1（ワーカーノード1）
-- k8s-worker2（ワーカーノード2）
+- k8s-master
+- k8s-worker1
+- k8s-worker2
 
-### 2. k8sクラスターの初期化
+### 2. k8sクラスターの作成
 
 ```sh
-sh scripts/cluster-init.sh
+sh scripts/cluster.sh
 ```
