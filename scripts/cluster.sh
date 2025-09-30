@@ -9,11 +9,13 @@ wait_for_vm() {
   local vm_name=$1
   echo "Waiting for $vm_name..."
 
-  for i in {1..60}; do
+  local max_attempts=120  # 10分間待機 (120 * 5秒)
+  for i in $(seq 1 $max_attempts); do
     if incus exec $vm_name -- echo "ready" >/dev/null 2>&1; then
       echo "$vm_name is ready!"
       return 0
     fi
+    echo "  Attempt $i/$max_attempts... (waiting 5s)"
     sleep 5
   done
 
