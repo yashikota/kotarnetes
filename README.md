@@ -10,13 +10,20 @@ Ubuntu 24.04
 
 - Incus
 - Kubernetes (v1.34)
+- Cilium
+- Helm
+- Argo CD
+- Metrics Server
+- Kubernetes Dashboard
+- k9s
+- cloudflared
 
 ## セットアップ
 
-### 1. 環境の構築
+### 1. VMの作成
 
 ```bash
-sh setup.sh
+sh scripts/incus-init.sh
 newgrp incus-admin
 ```
 
@@ -25,3 +32,9 @@ newgrp incus-admin
 - k8s-master （マスターノード）
 - k8s-worker1（ワーカーノード1）
 - k8s-worker2（ワーカーノード2）
+
+### 2. k8sクラスターの初期化
+
+```sh
+sh scripts/cluster-init.sh
+```
