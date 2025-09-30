@@ -12,4 +12,3 @@ sudo incus launch images:ubuntu/24.04/cloud k8s-worker2 --vm --config=user.user-
 
 # Check VM status
 sudo incus list
-
