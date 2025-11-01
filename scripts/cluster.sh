@@ -2,11 +2,11 @@
 set -e
 
 # Color variables
-RED    := $(tput -Txterm setaf 1)
-GREEN  := $(tput -Txterm setaf 2)
-YELLOW := $(tput -Txterm setaf 3)
-BLUE   := $(tput -Txterm setaf 4)
-RESET  := $(tput -Txterm sgr0)
+RED=$(tput -Txterm setaf 1)
+GREEN=$(tput -Txterm setaf 2)
+YELLOW=$(tput -Txterm setaf 3)
+BLUE=$(tput -Txterm setaf 4)
+RESET=$(tput -Txterm sgr0)
 
 echo "${BLUE}Waiting for VMs to start...${RESET}"
 
