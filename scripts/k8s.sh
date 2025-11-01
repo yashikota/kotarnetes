@@ -2,18 +2,18 @@
 set -e
 
 # Color variables
-RED=$(tput -Txterm setaf 1)
-GREEN=$(tput -Txterm setaf 2)
-YELLOW=$(tput -Txterm setaf 3)
-BLUE=$(tput -Txterm setaf 4)
-RESET=$(tput -Txterm sgr0)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+MAGENTA=$(tput setaf 5)
+CYAN=$(tput setaf 6)
+RESET=$(tput sgr0)
 
-echo "${BLUE}Waiting for VMs to start...${RESET}"
+echo "${CYAN}Waiting for VMs to start...${RESET}"
 
 # VMが起動してエージェントが利用可能になるまで待つ
 wait_for_vm() {
   local vm_name=$1
-  echo "${BLUE}Waiting for $vm_name...${RESET}"
+  echo "${CYAN}Waiting for $vm_name...${RESET}"
 
   local max_attempts=12  # 1分間待機 (12 * 5秒)
   for i in $(seq 1 $max_attempts); do
@@ -25,7 +25,7 @@ wait_for_vm() {
     sleep 5
   done
 
-  echo "${RED}ERROR: $vm_name did not start in time${RESET}"
+  echo "${MAGENTA}ERROR: $vm_name did not start in time${RESET}"
   return 1
 }
 
@@ -33,7 +33,7 @@ wait_for_vm k8s-master
 wait_for_vm k8s-worker1
 wait_for_vm k8s-worker2
 
-echo "${BLUE}Waiting for cloud-init to complete...${RESET}"
+echo "${CYAN}Waiting for cloud-init to complete...${RESET}"
 incus exec k8s-master -- cloud-init status --wait
 incus exec k8s-worker1 -- cloud-init status --wait
 incus exec k8s-worker2 -- cloud-init status --wait
@@ -41,16 +41,16 @@ incus exec k8s-worker2 -- cloud-init status --wait
 echo "${GREEN}Initializing Kubernetes cluster...${RESET}"
 
 # マスターノードでクラスタを初期化
-echo "${BLUE}Initializing master node...${RESET}"
+echo "${CYAN}Initializing master node...${RESET}"
 incus exec k8s-master -- bash -c "kubeadm init --skip-phases=addon/kube-proxy"
 
 # kubectl設定
-echo "${BLUE}Configuring kubectl...${RESET}"
+echo "${CYAN}Configuring kubectl...${RESET}"
 incus exec k8s-master -- bash -c "mkdir -p /root/.kube && cp -i /etc/kubernetes/admin.conf /root/.kube/config && chown root:root /root/.kube/config"
 
 # Cilium CLIをインストール
 # Reference: https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default
-echo "${BLUE}Installing Cilium CLI...${RESET}"
+echo "${CYAN}Installing Cilium CLI...${RESET}"
 incus exec k8s-master -- bash -c '
 CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)
 CLI_ARCH=amd64
@@ -61,30 +61,30 @@ tar xvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
 rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
 '
 
-echo "${BLUE}Installing Cilium CNI...${RESET}"
+echo "${CYAN}Installing Cilium CNI...${RESET}"
 incus exec k8s-master -- cilium install --version 1.16.5
 
 # joinコマンドを取得
-echo "${BLUE}Generating join command...${RESET}"
+echo "${CYAN}Generating join command...${RESET}"
 JOIN_CMD=$(incus exec k8s-master -- kubeadm token create --print-join-command)
 echo "${GREEN}Join command: $JOIN_CMD${RESET}"
 
 # ワーカーノードを参加させる
-echo "${BLUE}Joining worker nodes to cluster...${RESET}"
+echo "${CYAN}Joining worker nodes to cluster...${RESET}"
 
-echo "${BLUE}Joining k8s-worker1...${RESET}"
+echo "${CYAN}Joining k8s-worker1...${RESET}"
 incus exec k8s-worker1 -- bash -c "$JOIN_CMD"
 
-echo "${BLUE}Joining k8s-worker2...${RESET}"
+echo "${CYAN}Joining k8s-worker2...${RESET}"
 incus exec k8s-worker2 -- bash -c "$JOIN_CMD"
 
 echo "${GREEN}Cluster setup complete!${RESET}"
 
 # クラスタの状態を確認
-echo "${BLUE}Checking cluster status...${RESET}"
+echo "${CYAN}Checking cluster status...${RESET}"
 incus exec k8s-master -- kubectl get nodes
 
-echo "${BLUE}Waiting for Cilium to be ready...${RESET}"
+echo "${CYAN}Waiting for Cilium to be ready...${RESET}"
 incus exec k8s-master -- cilium status --wait
 
 echo "${GREEN}Setup complete!${RESET}"
