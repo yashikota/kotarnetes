@@ -46,7 +46,8 @@ incus exec k8s-master -- bash -c "kubeadm init --skip-phases=addon/kube-proxy"
 
 # kubectl設定
 echo "${CYAN}Configuring kubectl...${RESET}"
-incus exec k8s-master -- bash -c "mkdir -p /root/.kube && cp -i /etc/kubernetes/admin.conf /root/.kube/config && chown root:root /root/.kube/config"
+incus exec k8s-master -- bash -c "mkdir -p $HOME/.kube && sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config && sudo chown $(id -u):$(id -g) $HOME/.kube/config"
+echo "${GREEN}kubectl configured!${RESET}"
 
 # Cilium CLIをインストール
 # Reference: https://docs.cilium.io/en/stable/gettingstarted/k8s-install-default
@@ -62,12 +63,14 @@ rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
 '
 
 echo "${CYAN}Installing Cilium CNI...${RESET}"
-incus exec k8s-master -- cilium install --version 1.16.5
+incus exec k8s-master -- cilium install --version 1.18.3
+
+echo "${GREEN}Cilium CNI installed!${RESET}"
 
 # joinコマンドを取得
 echo "${CYAN}Generating join command...${RESET}"
 JOIN_CMD=$(incus exec k8s-master -- kubeadm token create --print-join-command)
-echo "${GREEN}Join command: $JOIN_CMD${RESET}"
+echo "${YELLOW}Join command: $JOIN_CMD${RESET}"
 
 # ワーカーノードを参加させる
 echo "${CYAN}Joining worker nodes to cluster...${RESET}"
