@@ -36,5 +36,5 @@ newgrp incus-admin
 ### 2. k8sクラスターの作成
 
 ```sh
-sh scripts/cluster.sh
+sh scripts/k8s.sh
 ```
