@@ -93,16 +93,6 @@ incus exec k8s-master -- kubectl get nodes -o wide
 incus exec k8s-master -- kubectl get pods -A -o wide
 incus exec k8s-master -- kubectl -n kube-system get pods
 
-echo "${CYAN}Checking worker1 cluster status...${RESET}"
-incus exec k8s-worker1 -- kubectl get nodes -o wide
-incus exec k8s-worker1 -- kubectl get pods -A -o wide
-incus exec k8s-worker1 -- kubectl -n kube-system get pods
-
-echo "${CYAN}Checking worker2 cluster status...${RESET}"
-incus exec k8s-worker2 -- kubectl get nodes -o wide
-incus exec k8s-worker2 -- kubectl get pods -A -o wide
-incus exec k8s-worker2 -- kubectl -n kube-system get pods
-
 echo "${CYAN}Checking Cilium status...${RESET}"
 incus exec k8s-master -- cilium status
 incus exec k8s-master -- cilium connectivity test
