@@ -60,10 +60,14 @@ curl -L --fail --remote-name-all https://github.com/cilium/cilium-cli/releases/d
 sha256sum --check cilium-linux-${CLI_ARCH}.tar.gz.sha256sum
 tar xvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
 rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+chmod +x /usr/local/bin/cilium
 '
 
+echo "${CYAN}Waiting for Cilium CLI to be ready...${RESET}"
+sleep 2
+
 echo "${CYAN}Installing Cilium CNI...${RESET}"
-incus exec k8s-master -- bash -c 'export KUBECONFIG=$HOME/.kube/config && cilium install --version 1.18.3'
+incus exec k8s-master -- bash -c 'export KUBECONFIG=$HOME/.kube/config && export PATH=/usr/local/bin:$PATH && cilium install --version 1.18.3'
 
 echo "${GREEN}Cilium CNI installed!${RESET}"
 
