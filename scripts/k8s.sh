@@ -63,7 +63,7 @@ rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
 '
 
 echo "${CYAN}Installing Cilium CNI...${RESET}"
-incus exec k8s-master -- cilium install --version 1.18.3
+incus exec k8s-master -- bash -c 'export KUBECONFIG=$HOME/.kube/config && cilium install --version 1.18.3'
 
 echo "${GREEN}Cilium CNI installed!${RESET}"
 
