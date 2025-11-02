@@ -46,7 +46,7 @@ incus exec k8s-master -- bash -c "kubeadm init --skip-phases=addon/kube-proxy"
 
 # kubectl設定
 echo "${CYAN}Configuring kubectl...${RESET}"
-incus exec k8s-master -- bash -c "mkdir -p $HOME/.kube && sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config && sudo chown $(id -u):$(id -g) $HOME/.kube/config"
+incus exec k8s-master -- bash -c "mkdir -p /root/.kube && cp -i /etc/kubernetes/admin.conf /root/.kube/config && chown root:root /root/.kube/config"
 echo "${GREEN}kubectl configured!${RESET}"
 
 # Cilium CLIをインストール
@@ -60,14 +60,10 @@ curl -L --fail --remote-name-all https://github.com/cilium/cilium-cli/releases/d
 sha256sum --check cilium-linux-${CLI_ARCH}.tar.gz.sha256sum
 tar xvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
 rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
-chmod +x /usr/local/bin/cilium
 '
 
-echo "${CYAN}Waiting for Cilium CLI to be ready...${RESET}"
-sleep 2
-
 echo "${CYAN}Installing Cilium CNI...${RESET}"
-incus exec k8s-master -- bash -c 'export KUBECONFIG=$HOME/.kube/config && export PATH=/usr/local/bin:$PATH && cilium install --version 1.18.3'
+incus exec k8s-master -- cilium install --version 1.18.3
 
 echo "${GREEN}Cilium CNI installed!${RESET}"
 
