@@ -46,7 +46,7 @@ incus exec k8s-master -- bash -c "kubeadm init --skip-phases=addon/kube-proxy"
 
 # kubectl設定
 echo "${CYAN}Configuring kubectl...${RESET}"
-incus exec k8s-master -- bash -c "mkdir -p /root/.kube && cp -i /etc/kubernetes/admin.conf /root/.kube/config && chown root:root /root/.kube/config"
+incus exec k8s-master -- bash -c "mkdir -p /root/.kube && cp -f /etc/kubernetes/admin.conf /root/.kube/config && chown root:root /root/.kube/config"
 echo "${GREEN}kubectl configured!${RESET}"
 
 # Cilium CLIをインストール
@@ -62,8 +62,10 @@ tar xvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
 rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
 '
 
-echo "${CYAN}Installing Cilium CNI...${RESET}"
-incus exec k8s-master -- cilium install --version 1.18.3
+echo "${CYAN}Installing Cilium CNI with Ingress Controller...${RESET}"
+incus exec k8s-master -- cilium install --version 1.18.3 \
+  --set ingressController.enabled=true \
+  --set ingressController.loadbalancerMode=shared
 
 echo "${GREEN}Cilium CNI installed!${RESET}"
 
@@ -87,16 +89,6 @@ echo "${GREEN}Cluster setup complete!${RESET}"
 echo "${CYAN}Waiting for Cilium to be ready...${RESET}"
 incus exec k8s-master -- cilium status --wait
 
-# クラスタの状態を確認
-echo "${CYAN}Checking cluster health...${RESET}"
-incus exec k8s-master -- kubectl get nodes -o wide
-incus exec k8s-master -- kubectl get pods -A -o wide
-incus exec k8s-master -- kubectl -n kube-system get pods
-
-echo "${CYAN}Checking Cilium status...${RESET}"
-incus exec k8s-master -- cilium status
-incus exec k8s-master -- cilium connectivity test
-
 # Hubbleの有効化
 echo "${CYAN}Enabling Hubble...${RESET}"
 incus exec k8s-master -- cilium hubble enable --ui
@@ -118,40 +110,51 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 '
 
 echo "${CYAN}Waiting for Argo CD to be ready...${RESET}"
-incus exec k8s-master -- kubectl wait --namespace argocd --for=condition=ready pod --all
-incus exec k8s-master -- kubectl port-forward svc/argocd-server -n argocd 8080:443
+incus exec k8s-master -- kubectl wait --namespace argocd --for=condition=ready pod --all --timeout=300s
+echo "${GREEN}Argo CD installed!${RESET}"
 
-ARGOCD_PASSWORD=$(incus exec k8s-master -- kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath="{.data.password}" | base64 -d)
+# kubectlをホストにインストール
+echo "${CYAN}Installing kubectl on host...${RESET}"
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+rm kubectl
+echo "${GREEN}kubectl installed on host!${RESET}"
 
-echo "${CYAN}Argo CD admin password: $ARGOCD_PASSWORD${RESET}"
+# kubeconfigをホストにコピー
+echo "${CYAN}Copying kubeconfig to host...${RESET}"
+mkdir -p ~/.kube
+incus exec k8s-master -- cat /root/.kube/config > ~/.kube/config
+echo "${GREEN}kubeconfig copied to ~/.kube/config${RESET}"
 
-echo "${YELLOW}Accessing Argo CD...${RESET}"
-echo "${YELLOW}http://127.0.0.1:8080${RESET}"
-echo "${YELLOW}Username: admin${RESET}"
-echo "${YELLOW}Password: $ARGOCD_PASSWORD${RESET}"
+# k9sをホストにインストール
+echo "${CYAN}Installing k9s on host...${RESET}"
+curl -Lo /tmp/k9s_linux_amd64.deb https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb
+sudo apt install -y /tmp/k9s_linux_amd64.deb
+rm /tmp/k9s_linux_amd64.deb
+echo "${GREEN}k9s installed on host!${RESET}"
 
-# Metrics Serverのインストール
-echo "${CYAN}Installing Metrics Server...${RESET}"
-incus exec k8s-master -- bash -c '
-kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-'
-echo "${GREEN}Metrics Server installed!${RESET}"
+# クラスタの状態を確認
+echo "${CYAN}Checking cluster health...${RESET}"
+kubectl get nodes -o wide
+kubectl get pods -A
 
-# Kubernetes Dashboardのインストール
-echo "${CYAN}Installing Kubernetes Dashboard...${RESET}"
-incus exec k8s-master -- bash -c '
-helm repo add kubernetes-dashboard https://kubernetes.github.io/dashboard/
-helm upgrade --install kubernetes-dashboard kubernetes-dashboard/kubernetes-dashboard --create-namespace --namespace kubernetes-dashboard
-'
-echo "${GREEN}Kubernetes Dashboard installed!${RESET}"
+# Argo CD root applicationを適用
+echo "${CYAN}Applying Argo CD root application...${RESET}"
+kubectl apply -f manifests/apps/root.yaml
+echo "${GREEN}Argo CD root application applied!${RESET}"
 
-# k9sのインストール
-echo "${CYAN}Installing k9s...${RESET}"
-incus exec k8s-master -- bash -c '
-wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb
-apt install ./k9s_linux_amd64.deb
-rm k9s_linux_amd64.deb
-'
-echo "${GREEN}k9s installed!${RESET}"
-
+echo ""
+echo "${GREEN}========================================${RESET}"
 echo "${GREEN}Setup complete!${RESET}"
+echo "${GREEN}========================================${RESET}"
+echo ""
+echo "${YELLOW}Argo CD:${RESET}"
+echo "  kubectl port-forward svc/argocd-server -n argocd 8080:443"
+echo "  URL: https://localhost:8080"
+echo "  Username: admin"
+echo "  Password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
+echo ""
+echo "${YELLOW}Hubble UI:${RESET}"
+echo "  kubectl port-forward -n kube-system svc/hubble-ui 12000:80"
+echo "  URL: http://localhost:12000"
+echo ""
