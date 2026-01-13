@@ -7,16 +7,10 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  sources:
-    - repoURL: https://kubernetes-sigs.github.io/metrics-server/
-      chart: metrics-server
-      targetRevision: "*"
-      helm:
-        valueFiles:
-          - $values/manifests/metrics-server/values.yaml
-    - repoURL: https://github.com/yashikota/kotarnetes.git
-      targetRevision: main
-      ref: values
+  source:
+    repoURL: https://kubernetes-sigs.github.io/metrics-server/
+    chart: metrics-server
+    targetRevision: "*"
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-system

@@ -7,16 +7,10 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  sources:
-    - repoURL: https://kubernetes.github.io/dashboard/
-      chart: kubernetes-dashboard
-      targetRevision: "*"
-      helm:
-        valueFiles:
-          - $values/manifests/kubernetes-dashboard/values.yaml
-    - repoURL: https://github.com/yashikota/kotarnetes.git
-      targetRevision: main
-      ref: values
+  source:
+    repoURL: https://kubernetes.github.io/dashboard/
+    chart: kubernetes-dashboard
+    targetRevision: "*"
   destination:
     server: https://kubernetes.default.svc
     namespace: kubernetes-dashboard
