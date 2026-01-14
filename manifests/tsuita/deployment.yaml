@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tsuita
+  namespace: tsuita
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tsuita
+  template:
+    metadata:
+      labels:
+        app: tsuita
+    spec:
+      containers:
+        - name: tsuita
+          image: ghcr.io/a-kaibu/tsuita:latest
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
