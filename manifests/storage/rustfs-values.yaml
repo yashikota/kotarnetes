@@ -1,0 +1,37 @@
+# rustFS Helm Chart values
+# https://github.com/rustfs/rustfs
+
+# Standalone mode (シングルノード)
+mode:
+  standalone:
+    enabled: true
+
+# レプリカ数
+replicaCount: 1
+
+# 認証情報 (デフォルト値、後で変更推奨)
+secret:
+  rustfs:
+    access_key: "rustfsadmin"
+    secret_key: "rustfsadmin"
+
+# StorageClass
+storageclass:
+  name: "local-path"
+
+# 永続化サイズ
+persistence:
+  size: 50Gi
+
+# リソース設定
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+
+# Ingress無効 (Cloudflared経由でアクセス)
+ingress:
+  enabled: false

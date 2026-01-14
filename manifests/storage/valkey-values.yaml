@@ -1,0 +1,35 @@
+# Valkey Helm Chart values
+# https://github.com/valkey-io/valkey-helm
+
+# Standalone mode (シングルノード)
+architecture: standalone
+
+# 認証設定
+auth:
+  enabled: true
+  password: ""  # 空の場合はランダム生成
+
+# Master設定
+master:
+  persistence:
+    enabled: true
+    size: 8Gi
+    storageClass: "local-path"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# レプリカ無効 (Standalone)
+replica:
+  replicaCount: 0
+
+# Prometheus Exporter
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
