@@ -1,0 +1,18 @@
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: tsuita-image-updater
+  namespace: argocd
+spec:
+  namespace: argocd
+
+  applicationRefs:
+    - namePattern: "tsuita"
+      images:
+        - alias: "tsuita"
+          imageName: "ghcr.io/a-kaibu/tsuita:latest"
+          commonUpdateSettings:
+            updateStrategy: "digest"
+          manifestTargets:
+            kustomize:
+              name: "ghcr.io/a-kaibu/tsuita"
