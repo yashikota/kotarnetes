@@ -7,7 +7,10 @@ architecture: standalone
 # 認証設定
 auth:
   enabled: true
-  password: ""  # 空の場合はランダム生成
+  aclUsers:
+    default:
+      permissions: "~* &* +@all"
+      password: "valkey-password"  # 本番では変更推奨
 
 # Master設定
 master:
