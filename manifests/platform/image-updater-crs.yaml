@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: tsuita
+  name: image-updater-crs
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -10,13 +10,11 @@ spec:
   source:
     repoURL: https://github.com/yashikota/kotarnetes.git
     targetRevision: main
-    path: manifests/tsuita
+    path: manifests/image-updater
   destination:
     server: https://kubernetes.default.svc
-    namespace: tsuita
+    namespace: argocd
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    syncOptions:
-      - CreateNamespace=true

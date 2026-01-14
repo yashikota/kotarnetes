@@ -16,3 +16,4 @@ spec:
           manifestTargets:
             kustomize:
               name: "ghcr.io/a-kaibu/tsuita"
+
