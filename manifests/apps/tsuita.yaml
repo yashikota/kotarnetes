@@ -3,6 +3,10 @@ kind: Application
 metadata:
   name: tsuita
   namespace: argocd
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: tsuita=ghcr.io/a-kaibu/tsuita
+    argocd-image-updater.argoproj.io/tsuita.update-strategy: digest
+    argocd-image-updater.argoproj.io/write-back-method: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
