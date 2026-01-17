@@ -145,10 +145,7 @@ alloy-metrics:
     auth:
       type: basic
       username: "929937"
-      passwordFrom:
-        secretKeyRef:
-          name: grafana-cloud-credentials
-          key: token
+      passwordFrom: env:GCLOUD_RW_API_KEY
 
 alloy-singleton:
   enabled: true
@@ -177,10 +174,7 @@ alloy-singleton:
     auth:
       type: basic
       username: "929937"
-      passwordFrom:
-        secretKeyRef:
-          name: grafana-cloud-credentials
-          key: token
+      passwordFrom: env:GCLOUD_RW_API_KEY
 
 alloy-logs:
   enabled: true
@@ -213,10 +207,7 @@ alloy-logs:
     auth:
       type: basic
       username: "929937"
-      passwordFrom:
-        secretKeyRef:
-          name: grafana-cloud-credentials
-          key: token
+      passwordFrom: env:GCLOUD_RW_API_KEY
 
 alloy-receiver:
   enabled: true
@@ -262,10 +253,7 @@ alloy-receiver:
     auth:
       type: basic
       username: "929937"
-      passwordFrom:
-        secretKeyRef:
-          name: grafana-cloud-credentials
-          key: token
+      passwordFrom: env:GCLOUD_RW_API_KEY
 
 alloy-profiles:
   enabled: true
@@ -298,7 +286,4 @@ alloy-profiles:
     auth:
       type: basic
       username: "929937"
-      passwordFrom:
-        secretKeyRef:
-          name: grafana-cloud-credentials
-          key: token
+      passwordFrom: env:GCLOUD_RW_API_KEY

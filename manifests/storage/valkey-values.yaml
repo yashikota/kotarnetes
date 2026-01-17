@@ -7,8 +7,11 @@ architecture: standalone
 # 認証設定
 auth:
   enabled: true
-  existingSecret: valkey-auth
-  existingSecretPasswordKey: password
+  aclUsers:
+    - user: default
+      passwordSecretRef:
+        name: valkey-auth
+        key: password
 
 # Master設定
 master:
