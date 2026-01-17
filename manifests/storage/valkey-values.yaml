@@ -12,6 +12,7 @@ auth:
       passwordSecretRef:
         name: valkey-auth
         key: password
+      permissions: "+@all ~*"
 
 # Master設定
 master:
