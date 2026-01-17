@@ -26,6 +26,7 @@ profiles:
     root:
       path: /
       pool: default
+      size: 200GiB
       type: disk
   name: default
 projects: []
