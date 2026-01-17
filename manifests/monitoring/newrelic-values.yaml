@@ -1,0 +1,60 @@
+# New Relic nri-bundle values
+# https://github.com/newrelic/helm-charts/tree/master/charts/nri-bundle
+
+global:
+  cluster: kubernetes
+  # ExternalSecretから参照
+  customSecretName: newrelic-license
+  customSecretLicenseKey: licenseKey
+  lowDataMode: true
+  privileged: true
+
+# Infrastructure monitoring
+newrelic-infrastructure:
+  enabled: true
+
+# Prometheus integration
+newrelic-prometheus-agent:
+  enabled: true
+  lowDataMode: true
+  config:
+    kubernetes:
+      integrations_filter:
+        enabled: false
+
+# Kubernetes events
+nri-kube-events:
+  enabled: true
+
+# Logging
+newrelic-logging:
+  enabled: true
+  lowDataMode: true
+
+# Metadata injection
+nri-metadata-injection:
+  enabled: true
+
+# Kube state metrics
+kube-state-metrics:
+  enabled: true
+  image:
+    tag: v2.13.0
+
+# K8s agents operator
+k8s-agents-operator:
+  enabled: true
+
+# Disabled components
+nri-prometheus:
+  enabled: false
+newrelic-pixie:
+  enabled: false
+pixie-chart:
+  enabled: false
+newrelic-infra-operator:
+  enabled: false
+newrelic-eapm-agent:
+  enabled: false
+newrelic-k8s-metrics-adapter:
+  enabled: false
