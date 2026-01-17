@@ -19,7 +19,7 @@ spec:
         - name: bitwarden-sdk-server
           image: ghcr.io/external-secrets/bitwarden-sdk-server:v0.4.0
           args:
-            - --disable-tls
+            - --insecure
           ports:
             - containerPort: 9998
               name: grpc
