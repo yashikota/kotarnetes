@@ -24,6 +24,7 @@ Ubuntu 24.04
 
 - External Secrets Operator
 - Bitwarden Secrets Manager
+- cert-manager
 
 ### モニタリング
 
@@ -178,10 +179,11 @@ ESO関連リソースは以下の順序でデプロイされる:
 
 | Wave | リソース | 説明 |
 |------|----------|------|
-| -3 | External Secrets Operator | CRDとオペレーター |
-| -2 | bitwarden-sdk-server | gRPCプロキシ |
-| -1 | ClusterSecretStore | Bitwarden接続設定 |
-| 0 | ExternalSecret | K8s Secret生成 |
+| -5 | cert-manager | TLS証明書管理 |
+| -4 | External Secrets Operator | CRDとオペレーター |
+| -3 | bitwarden-sdk-server | gRPCプロキシ（TLS対応） |
+| -2 | ClusterSecretStore | Bitwarden接続設定 |
+| -1 | ExternalSecret | K8s Secret生成 |
 | 1 | valkey, rustfs, cloudflared | アプリケーション |
 
 ### 5. Cloudflare Tunnelの設定

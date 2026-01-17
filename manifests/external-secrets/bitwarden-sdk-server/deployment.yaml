@@ -19,7 +19,8 @@ spec:
         - name: bitwarden-sdk-server
           image: ghcr.io/external-secrets/bitwarden-sdk-server:v0.4.0
           args:
-            - --insecure
+            - --cert-file=/certs/tls.crt
+            - --key-file=/certs/tls.key
           ports:
             - containerPort: 9998
               name: grpc
@@ -36,16 +37,24 @@ spec:
             limits:
               memory: "128Mi"
               cpu: "200m"
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /certs
+              readOnly: true
           livenessProbe:
-            grpc:
+            tcpSocket:
               port: 9998
             initialDelaySeconds: 10
             periodSeconds: 10
           readinessProbe:
-            grpc:
+            tcpSocket:
               port: 9998
             initialDelaySeconds: 5
             periodSeconds: 5
+      volumes:
+        - name: tls-certs
+          secret:
+            secretName: bitwarden-sdk-server-tls
 ---
 apiVersion: v1
 kind: Service
