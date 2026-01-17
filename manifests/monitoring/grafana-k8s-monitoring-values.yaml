@@ -61,8 +61,10 @@ clusterMetrics:
   enabled: true
   node-exporter:
     enabled: false
+    deploy: false
   windows-exporter:
     enabled: false
+    deploy: false
   opencost:
     enabled: true
     metricsSource: grafana-cloud-metrics
