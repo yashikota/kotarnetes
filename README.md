@@ -20,6 +20,11 @@ Ubuntu 24.04
 - Argo CD
 - Helm
 
+### シークレット管理
+
+- External Secrets Operator
+- Bitwarden Secrets Manager
+
 ### モニタリング
 
 - Prometheus
@@ -125,25 +130,69 @@ Argo CDが自動的に以下のアプリケーションをデプロイする
 
 設定を変更したい場合は `manifests/` 以下のファイルを編集してGitにpushする
 
-### 4. Cloudflare Tunnelの設定
+### 4. シークレット管理の設定（Bitwarden Secrets Manager）
 
-外部からArgo CD等にアクセスするためのTunnelを設定する
+External Secrets Operator (ESO) + Bitwarden Secrets Managerでシークレットを管理する
+
+#### 4.1 Bitwarden側の準備
+
+1. [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/)でプロジェクトを作成
+2. 以下のシークレットを作成
+   - `cloudflare-tunnel-token`: Cloudflare Tunnelトークン
+3. Machine Accountを作成し、プロジェクトへのアクセス権限を付与
+4. Access Tokenを取得
+
+#### 4.2 ClusterSecretStoreの設定
+
+ExternalSecretマニフェストを編集してBitwardenのシークレットIDを設定:
 
 ```bash
-# 1. Cloudflare Dashboardでトンネルを作成
-#    https://one.dash.cloudflare.com/ → Zero Trust → Networks → Tunnels
-#    「Create a tunnel」からトンネルを作成し、トークンを取得
+# 1. ClusterSecretStoreの設定
+#    manifests/external-secrets/store/cluster-secret-store.yaml
+#    - organizationID: Bitwarden組織ID
+#    - projectID: BitwardenプロジェクトID
 
-# 2. namespaceを作成
-kubectl create namespace cloudflared
+# 2. ExternalSecretの設定
+#    manifests/external-secrets/secrets/*.yaml
+#    - remoteRef.key: 各シークレットのBitwarden ID
+```
 
-# 3. トークンをSecretとして保存
-kubectl create secret generic cloudflared-tunnel \
-  --namespace cloudflared \
-  --from-literal=token=<YOUR_TUNNEL_TOKEN>
+#### 4.3 初回デプロイ
 
-# 4. GitにpushしてArgo CDでデプロイ
+```bash
+# 1. namespaceを作成
+kubectl create namespace external-secrets
+
+# 2. Bitwarden Access TokenをSecretとして投入（初回のみ）
+kubectl create secret generic bitwarden-access-token \
+  --namespace external-secrets \
+  --from-literal=token=<YOUR_BWS_ACCESS_TOKEN>
+
+# 3. GitにpushしてArgo CDでデプロイ
 git push
+```
+
+#### 4.4 デプロイ順序（sync-wave）
+
+ESO関連リソースは以下の順序でデプロイされる:
+
+| Wave | リソース | 説明 |
+|------|----------|------|
+| -3 | External Secrets Operator | CRDとオペレーター |
+| -2 | bitwarden-sdk-server | gRPCプロキシ |
+| -1 | ClusterSecretStore | Bitwarden接続設定 |
+| 0 | ExternalSecret | K8s Secret生成 |
+| 1 | valkey, rustfs, cloudflared | アプリケーション |
+
+### 5. Cloudflare Tunnelの設定
+
+External Secrets経由で自動的にシークレットが作成されるため、手動でのSecret作成は不要
+
+```bash
+# Cloudflare Dashboardでトンネルを作成
+# https://one.dash.cloudflare.com/ → Zero Trust → Networks → Tunnels
+# 「Create a tunnel」からトンネルを作成し、トークンを取得
+# → Bitwarden Secrets Managerに登録
 ```
 
 ## アクセス情報

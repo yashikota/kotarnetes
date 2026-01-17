@@ -1,10 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cloudflared
+  name: bitwarden-sdk-server
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "-2"
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -12,13 +12,11 @@ spec:
   source:
     repoURL: https://github.com/yashikota/kotarnetes.git
     targetRevision: main
-    path: manifests/cloudflared
+    path: manifests/external-secrets/bitwarden-sdk-server
   destination:
     server: https://kubernetes.default.svc
-    namespace: cloudflared
+    namespace: external-secrets
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    syncOptions:
-      - CreateNamespace=true

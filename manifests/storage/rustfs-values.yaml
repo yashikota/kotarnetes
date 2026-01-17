@@ -9,11 +9,11 @@ mode:
 # レプリカ数
 replicaCount: 1
 
-# 認証情報 (デフォルト値、後で変更推奨)
+# 認証情報
 secret:
-  rustfs:
-    access_key: "rustfsadmin"
-    secret_key: "rustfsadmin"
+  existingSecret: rustfs-auth
+  accessKeyKey: access_key
+  secretKeyKey: secret_key
 
 # StorageClass
 storageclass:
