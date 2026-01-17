@@ -66,7 +66,7 @@ clusterMetrics:
       exporter:
         defaultClusterId: kubernetes
       prometheus:
-        existingSecretName: grafana-cloud-metrics-grafana-k8s-monitoring
+        existingSecretName: grafana-cloud-credentials
         external:
           url: https://prometheus-prod-49-prod-ap-northeast-0.grafana.net/api/prom
 
