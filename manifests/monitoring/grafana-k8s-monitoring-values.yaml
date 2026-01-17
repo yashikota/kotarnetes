@@ -17,10 +17,9 @@ destinations:
     auth:
       type: basic
       username: "1575560"
-      passwordFrom:
-        secretKeyRef:
-          name: grafana-cloud-credentials
-          key: token
+      passwordKey: token
+    secret:
+      name: grafana-cloud-credentials
 
   - name: grafana-cloud-logs
     type: loki
@@ -28,10 +27,9 @@ destinations:
     auth:
       type: basic
       username: "887717"
-      passwordFrom:
-        secretKeyRef:
-          name: grafana-cloud-credentials
-          key: token
+      passwordKey: token
+    secret:
+      name: grafana-cloud-credentials
 
   - name: gc-otlp-endpoint
     type: otlp
@@ -40,10 +38,9 @@ destinations:
     auth:
       type: basic
       username: "929937"
-      passwordFrom:
-        secretKeyRef:
-          name: grafana-cloud-credentials
-          key: token
+      passwordKey: token
+    secret:
+      name: grafana-cloud-credentials
     metrics:
       enabled: true
     logs:
@@ -57,10 +54,9 @@ destinations:
     auth:
       type: basic
       username: "929937"
-      passwordFrom:
-        secretKeyRef:
-          name: grafana-cloud-credentials
-          key: token
+      passwordKey: token
+    secret:
+      name: grafana-cloud-credentials
 
 # Cluster metrics
 clusterMetrics:
