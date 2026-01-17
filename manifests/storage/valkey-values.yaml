@@ -8,7 +8,7 @@ architecture: standalone
 auth:
   enabled: true
   aclUsers:
-    - user: default
+    default:
       passwordSecretRef:
         name: valkey-auth
         key: password
