@@ -4,12 +4,6 @@
 cluster:
   name: kubernetes
 
-externalSecrets:
-  enabled: true
-  secrets:
-    - name: grafana-cloud-credentials
-      secretName: grafana-cloud-credentials
-
 destinations:
   - name: grafana-cloud-metrics
     type: prometheus
@@ -17,9 +11,10 @@ destinations:
     auth:
       type: basic
       username: "1575560"
-      passwordKey: token
     secret:
+      create: false
       name: grafana-cloud-credentials
+      namespace: grafana-k8s-monitoring
 
   - name: grafana-cloud-logs
     type: loki
@@ -27,9 +22,10 @@ destinations:
     auth:
       type: basic
       username: "887717"
-      passwordKey: token
     secret:
+      create: false
       name: grafana-cloud-credentials
+      namespace: grafana-k8s-monitoring
 
   - name: gc-otlp-endpoint
     type: otlp
@@ -38,9 +34,10 @@ destinations:
     auth:
       type: basic
       username: "929937"
-      passwordKey: token
     secret:
+      create: false
       name: grafana-cloud-credentials
+      namespace: grafana-k8s-monitoring
     metrics:
       enabled: true
     logs:
@@ -54,9 +51,10 @@ destinations:
     auth:
       type: basic
       username: "929937"
-      passwordKey: token
     secret:
+      create: false
       name: grafana-cloud-credentials
+      namespace: grafana-k8s-monitoring
 
 # Cluster metrics
 clusterMetrics:
