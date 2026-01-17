@@ -1,15 +1,23 @@
 # rustFS Helm Chart values
 # https://github.com/rustfs/rustfs
 
-# Distributed mode (4ノード)
+# Standalone mode
 mode:
   standalone:
-    enabled: false
-  distributed:
     enabled: true
+  distributed:
+    enabled: false
 
 # レプリカ数
-replicaCount: 4
+replicaCount: 1
+
+initContainer:
+  command:
+    - sh
+    - -c
+    - |
+      mkdir -p /data /logs
+      chown 10001:10001 /data /logs
 
 # 認証情報
 secret:
