@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: github-trending-ja
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/yashikota/kotarnetes.git
+    targetRevision: main
+    path: manifests/github-trending-ja
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: github-trending-ja
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
