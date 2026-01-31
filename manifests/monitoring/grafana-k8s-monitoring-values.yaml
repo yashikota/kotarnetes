@@ -11,6 +11,7 @@ destinations:
     auth:
       type: basic
       username: "1575560"
+      passwordKey: "token"
     secret:
       create: false
       name: grafana-cloud-credentials
@@ -22,6 +23,7 @@ destinations:
     auth:
       type: basic
       username: "887717"
+      passwordKey: "token"
     secret:
       create: false
       name: grafana-cloud-credentials
@@ -34,6 +36,7 @@ destinations:
     auth:
       type: basic
       username: "929937"
+      passwordKey: "token"
     secret:
       create: false
       name: grafana-cloud-credentials
@@ -51,6 +54,7 @@ destinations:
     auth:
       type: basic
       username: "929937"
+      passwordKey: "token"
     secret:
       create: false
       name: grafana-cloud-credentials
