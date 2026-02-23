@@ -109,6 +109,12 @@ kubectl create namespace argocd
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 '
 
+echo "${CYAN}Configuring Argo CD insecure mode (TLS termination at reverse proxy)...${RESET}"
+incus exec k8s-master -- bash -c '
+kubectl patch configmap argocd-cmd-params-cm -n argocd --type merge -p "{\"data\":{\"server.insecure\":\"true\"}}"
+kubectl rollout restart deployment argocd-server -n argocd
+'
+
 echo "${CYAN}Waiting for Argo CD to be ready...${RESET}"
 incus exec k8s-master -- kubectl wait --namespace argocd --for=condition=ready pod --all --timeout=300s
 echo "${GREEN}Argo CD installed!${RESET}"
@@ -149,8 +155,8 @@ echo "${GREEN}Setup complete!${RESET}"
 echo "${GREEN}========================================${RESET}"
 echo ""
 echo "${YELLOW}Argo CD:${RESET}"
-echo "  kubectl port-forward svc/argocd-server -n argocd 8080:443"
-echo "  URL: https://localhost:8080"
+echo "  kubectl port-forward svc/argocd-server -n argocd 8080:80"
+echo "  URL: http://localhost:8080"
 echo "  Username: admin"
 echo "  Password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
 echo ""
