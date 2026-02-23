@@ -63,19 +63,6 @@ External Secrets Operator + Bitwarden Secrets Manager を使用。
 - **Monitoring**: Prometheus, Loki, Alloy, Grafana K8s Monitoring
 - **Storage**: local-path-provisioner, Valkey, RustFS
 
-## アクセス
-
-```bash
-# Argo CD
-kubectl port-forward svc/argocd-server -n argocd 8080:443
-# Password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
-
-# Hubble UI
-kubectl port-forward -n kube-system svc/hubble-ui 12000:80
-
-# Kubernetes Dashboard
-kubectl port-forward -n kubernetes-dashboard svc/kubernetes-dashboard-kong-proxy 8443:443
-```
 
 ## 手動Sync
 
