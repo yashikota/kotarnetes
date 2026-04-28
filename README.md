@@ -147,7 +147,9 @@ Tailscale 管理画面で route approval が必要な場合は承認する。
 ### 3. master VM のセットアップ
 
 ```sh
-sudo incus exec k8s-master -- git clone https://github.com/yashikota/kotarnetes.git /root/kotarnetes
+sudo incus exec k8s-master -- rm -rf /root/kotarnetes
+sudo incus exec k8s-master -- mkdir -p /root/kotarnetes
+sudo incus file push -r ./ k8s-master/root/kotarnetes/
 sudo incus exec k8s-master -- sh /root/kotarnetes/scripts/k8s.sh master
 ```
 
@@ -167,11 +169,15 @@ master 完了時に表示されたコマンドを各 worker VM で実行する�
 
 ```sh
 # worker1
-sudo incus exec k8s-worker1 -- git clone https://github.com/yashikota/kotarnetes.git /root/kotarnetes
+sudo incus exec k8s-worker1 -- rm -rf /root/kotarnetes
+sudo incus exec k8s-worker1 -- mkdir -p /root/kotarnetes
+sudo incus file push -r ./ k8s-worker1/root/kotarnetes/
 sudo incus exec k8s-worker1 -- sh /root/kotarnetes/scripts/k8s.sh worker 'kubeadm join ...'
 
 # worker2
-sudo incus exec k8s-worker2 -- git clone https://github.com/yashikota/kotarnetes.git /root/kotarnetes
+sudo incus exec k8s-worker2 -- rm -rf /root/kotarnetes
+sudo incus exec k8s-worker2 -- mkdir -p /root/kotarnetes
+sudo incus file push -r ./ k8s-worker2/root/kotarnetes/
 sudo incus exec k8s-worker2 -- sh /root/kotarnetes/scripts/k8s.sh worker 'kubeadm join ...'
 ```
 

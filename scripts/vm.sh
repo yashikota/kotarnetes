@@ -238,7 +238,9 @@ echo ""
 warn "Next steps:"
 echo "  sudo tailscale set --advertise-routes=$tailscale_route --snat-subnet-routes=false"
 echo "  # Approve the route in the Tailscale admin console if required."
-echo "  sudo incus exec $vm_name -- git clone https://github.com/yashikota/kotarnetes.git /root/kotarnetes"
+echo "  sudo incus exec $vm_name -- rm -rf /root/kotarnetes"
+echo "  sudo incus exec $vm_name -- mkdir -p /root/kotarnetes"
+echo "  sudo incus file push -r ./ $vm_name/root/kotarnetes/"
 if [ "$1" = "master" ]; then
   echo "  sudo incus exec $vm_name -- sh /root/kotarnetes/scripts/k8s.sh master"
 else

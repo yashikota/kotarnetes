@@ -16,7 +16,9 @@ sh scripts/vm.sh worker2
 sudo tailscale set --advertise-routes=<VM_SUBNET> --snat-subnet-routes=false
 
 # 各VM内にリポジトリを配置
-sudo incus exec <VM_NAME> -- git clone https://github.com/yashikota/kotarnetes.git /root/kotarnetes
+sudo incus exec <VM_NAME> -- rm -rf /root/kotarnetes
+sudo incus exec <VM_NAME> -- mkdir -p /root/kotarnetes
+sudo incus file push -r ./ <VM_NAME>/root/kotarnetes/
 
 # master VMでKubernetesを初期化
 sudo incus exec k8s-master -- sh /root/kotarnetes/scripts/k8s.sh master
