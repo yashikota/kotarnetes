@@ -253,8 +253,8 @@ init_master() {
   install_helm
 
   info "Installing Argo CD..."
-  run_as_root kubectl create namespace argocd
-  run_as_root kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+  run_as_root kubectl create namespace argocd --dry-run=client -o yaml | run_as_root kubectl apply -f -
+  run_as_root kubectl apply --server-side --force-conflicts -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
   info "Configuring Argo CD insecure mode (TLS termination at reverse proxy)..."
   run_as_root kubectl patch configmap argocd-cmd-params-cm -n argocd --type merge -p '{"data":{"server.insecure":"true"}}'
