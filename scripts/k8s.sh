@@ -236,6 +236,11 @@ init_master() {
   export KUBECONFIG=/etc/kubernetes/admin.conf
   success "kubectl configured."
 
+  info "Allowing workloads on the control-plane node..."
+  run_as_root kubectl taint nodes --all node-role.kubernetes.io/control-plane- >/dev/null 2>&1 || true
+  run_as_root kubectl taint nodes --all node-role.kubernetes.io/master- >/dev/null 2>&1 || true
+  success "Control-plane node is schedulable."
+
   install_cilium_cli
 
   info "Installing Cilium CNI with Ingress Controller..."
@@ -261,7 +266,13 @@ init_master() {
   run_as_root kubectl rollout restart deployment argocd-server -n argocd
 
   info "Waiting for Argo CD to be ready..."
-  run_as_root kubectl wait --namespace argocd --for=condition=ready pod --all --timeout=300s
+  run_as_root kubectl rollout status statefulset/argocd-application-controller -n argocd --timeout=600s
+  run_as_root kubectl rollout status deployment/argocd-applicationset-controller -n argocd --timeout=600s
+  run_as_root kubectl rollout status deployment/argocd-dex-server -n argocd --timeout=600s
+  run_as_root kubectl rollout status deployment/argocd-notifications-controller -n argocd --timeout=600s
+  run_as_root kubectl rollout status deployment/argocd-redis -n argocd --timeout=600s
+  run_as_root kubectl rollout status deployment/argocd-repo-server -n argocd --timeout=600s
+  run_as_root kubectl rollout status deployment/argocd-server -n argocd --timeout=600s
   success "Argo CD installed."
 
   install_k9s
