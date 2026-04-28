@@ -9,14 +9,14 @@ networks:
   project: default
 storage_pools:
 - config:
-    size: 200GiB
+    size: 512GiB
   description: ""
   name: default
   driver: btrfs
 profiles:
 - config:
     limits.cpu: "2"
-    limits.memory: 4GiB
+    limits.memory: 8GiB
   description: ""
   devices:
     eth0:
