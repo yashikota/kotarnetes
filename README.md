@@ -134,12 +134,12 @@ sh scripts/vm.sh worker2
 1. Incus のインストールと初期化
 2. role に応じた CPU / メモリで VM を作成
 3. ホストの IPv4 forwarding と iptables を設定
-4. Tailscale subnet route の広告コマンドを表示
+4. Tailscale subnet route の受信と広告を有効にするコマンドを表示
 
-スクリプト完了後、表示された subnet route を各ホストで広告する。
+スクリプト完了後、表示された subnet route を各ホストで広告し、他ホストの subnet route も受信する。
 
 ```sh
-sudo tailscale set --advertise-routes=<VM_SUBNET> --snat-subnet-routes=false
+sudo tailscale set --accept-routes=true --advertise-routes=<VM_SUBNET> --snat-subnet-routes=false
 ```
 
 Tailscale 管理画面で route approval が必要な場合は承認する。
@@ -179,6 +179,13 @@ sudo incus exec k8s-worker2 -- rm -rf /root/kotarnetes
 sudo incus exec k8s-worker2 -- mkdir -p /root/kotarnetes
 sudo incus file push -r ./ k8s-worker2/root/kotarnetes/
 sudo incus exec k8s-worker2 -- sh /root/kotarnetes/scripts/k8s.sh worker 'kubeadm join ...'
+```
+
+worker VM 内に入って直接実行する場合は、同じ join コマンドを次の形で実行する。
+
+```sh
+cd /root/kotarnetes
+sh scripts/k8s.sh worker 'kubeadm join ...'
 ```
 
 セットアップ後の確認。
@@ -257,11 +264,17 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.pas
 
 Cloudflare Tunnel 経由の場合は Dashboard で設定したホスト名でアクセスする。
 
-### Kubernetes Dashboard
+### Headlamp
 
 ```bash
-kubectl port-forward -n kubernetes-dashboard svc/kubernetes-dashboard-kong-proxy 8443:443
-# URL: https://localhost:8443
+# 物理ホストからアクセス
+sudo incus exec k8s-master -- kubectl --kubeconfig /etc/kubernetes/admin.conf -n headlamp port-forward --address 0.0.0.0 svc/headlamp 4466:80
+# URL: http://10.210.1.141:4466
+
+# ログイン用 token
+sudo incus exec k8s-master -- sh -lc 'kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system create serviceaccount headlamp-admin --dry-run=client -o yaml | kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f -'
+sudo incus exec k8s-master -- sh -lc 'kubectl --kubeconfig /etc/kubernetes/admin.conf create clusterrolebinding headlamp-admin-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:headlamp-admin --dry-run=client -o yaml | kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f -'
+sudo incus exec k8s-master -- kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system create token headlamp-admin
 ```
 
 ### Hubble UI
