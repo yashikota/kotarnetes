@@ -7,4 +7,4 @@ resources:
 
 images:
   - name: ghcr.io/a-kaibu/tsuita
-    newTag: latest
+    newTag: latest@sha256:a74440b028e3cefeb57689ae5b1f316dd81f60ca6511bc14fd3ef6e664f4a3bf
