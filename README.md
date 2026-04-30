@@ -4,13 +4,21 @@ kota + kubernetes = kotarnetes
 
 ## システム要件
 
-Ubuntu 24.04
+| ホスト | CPU | メモリ | 用途 | VM割り当て |
+|--------|-----|--------|------|-----------|
+| master | 4コア | 15GB | control-plane | 2コア / 8GiB |
+| worker1 | 12コア | 12GB | ワークロード専用 | 11コア / 11GiB |
+| worker2 | 12コア | 12GB | ワークロード専用 | 11コア / 11GiB |
+
+- OS: Ubuntu系ディストリビューション
+- 各物理ホストに Tailscale セットアップ済み
+- sudo 権限
 
 ## 技術スタック
 
 ### インフラ
 
-- Incus
+- Incus（VM管理）
 - Kubernetes (v1.34)
 - Cilium (CNI + Ingress Controller)
 - Hubble
@@ -36,11 +44,13 @@ Ubuntu 24.04
 
 - Kubernetes Dashboard
 - Metrics Server
-- kubectl
-- k9s
+- kubectl / k9s
 - cloudflared
 
 ## アーキテクチャ
+
+物理3台の各ホスト上に Incus VM を1台ずつ作成し、VM 内に Kubernetes を閉じ込める。
+VM 間の通信は物理ホストの Tailscale subnet routing で接続する。
 
 ```mermaid
 flowchart TB
@@ -50,210 +60,247 @@ flowchart TB
         User["User"]
     end
 
-    subgraph Host["🖥️ Host (Ubuntu 24.04)"]
-        kubectl["kubectl / k9s"]
-        
-        subgraph Incus["📦 Incus"]
-            subgraph K8s["☸️ Kubernetes Cluster"]
-                subgraph Nodes["Nodes"]
-                    Master["k8s-master"]
-                    Worker1["k8s-worker1"]
-                    Worker2["k8s-worker2"]
-                end
-
-                subgraph Platform["Platform"]
-                    Cilium["Cilium + Hubble"]
-                    ArgoCD["Argo CD"]
-                    Cloudflared["cloudflared"]
-                end
-
-                subgraph Monitoring["Monitoring"]
-                    Prometheus["Prometheus"]
-                    Loki["Loki"]
-                    Alloy["Alloy"]
-                end
-
-                subgraph Tools["Tools"]
-                    Dashboard["K8s Dashboard"]
-                    Metrics["Metrics Server"]
-                end
-            end
+    subgraph Physical["🖥️ Physical Nodes"]
+        subgraph Host1["master host<br/>4C / 15GB"]
+            VM1["Incus VM: k8s-master<br/>2C / 8GiB"]
+        end
+        subgraph Host2["worker1 host<br/>12C / 12GB"]
+            VM2["Incus VM: k8s-worker1<br/>11C / 11GiB"]
+        end
+        subgraph Host3["worker2 host<br/>12C / 12GB"]
+            VM3["Incus VM: k8s-worker2<br/>11C / 11GiB"]
         end
     end
 
+    subgraph K8s["☸️ Kubernetes Cluster"]
+        subgraph Platform["Platform"]
+            Cilium["Cilium + Hubble"]
+            ArgoCD["Argo CD"]
+            Cloudflared["cloudflared"]
+        end
+
+        subgraph Monitoring["Monitoring"]
+            Prometheus["Prometheus"]
+            Loki["Loki"]
+            Alloy["Alloy"]
+        end
+
+        subgraph Tools["Tools"]
+            Dashboard["K8s Dashboard"]
+            Metrics["Metrics Server"]
+        end
+    end
+
+    VM1 ---|Tailscale subnet routing| VM2
+    VM1 ---|Tailscale subnet routing| VM3
+    VM1 --> K8s
+    VM2 --> K8s
+    VM3 --> K8s
     User -->|HTTPS| Cloudflare
     Cloudflare -->|Tunnel| Cloudflared
     GitHub -->|GitOps| ArgoCD
     ArgoCD -->|Deploy| Platform
     ArgoCD -->|Deploy| Monitoring
     ArgoCD -->|Deploy| Tools
-    kubectl -->|Control| K8s
 ```
 
 ## セットアップ
 
-### 1. VMの作成
+### 1. 前提
 
-```bash
-sh scripts/vm.sh
-newgrp incus-admin
-```
+3台の物理ホストを用意し、各ホストで Tailscale に参加しておく。
+Kubernetes や containerd などの変更は VM 内に閉じ込めるため、物理ホストの環境は汚れない。
 
-Incusがインストールされ、cloud-initを使用して以下のVMが作成される
+### 2. VM の作成
 
-- k8s-master
-- k8s-worker1
-- k8s-worker2
-
-### 2. k8sクラスターの作成
+各物理ホストで role を指定して実行する。リポジトリはホスト上に clone しておく。
 
 ```sh
-sh scripts/k8s.sh
+git clone https://github.com/yashikota/kotarnetes.git
+cd kotarnetes
+
+# master 用ホスト
+sh scripts/vm.sh master
+
+# worker1 用ホスト
+sh scripts/vm.sh worker1
+
+# worker2 用ホスト
+sh scripts/vm.sh worker2
 ```
 
-このスクリプトは以下を実行する
+`vm.sh` は以下を行う。
 
-1. Kubernetesクラスタの初期化
-2. Cilium CNI + Hubbleのインストール
-3. Argo CDのインストール
-4. ホストへのkubectl/k9sのインストール
-5. Argo CD root applicationの適用（GitOpsによるアプリデプロイ開始）
+1. Incus のインストールと初期化
+2. role に応じた CPU / メモリで VM を作成
+3. ホストの IPv4 forwarding と iptables を設定
+4. Tailscale subnet route の受信と広告を有効にするコマンドを表示
 
-### 3. GitOpsによるアプリケーションデプロイ
+スクリプト完了後、表示された subnet route を各ホストで広告し、他ホストの subnet route も受信する。
 
-Argo CDが自動的に以下のアプリケーションをデプロイする
-
-- Prometheus
-- Loki
-- Alloy
-- Kubernetes Dashboard
-- Metrics Server
-
-設定を変更したい場合は `manifests/` 以下のファイルを編集してGitにpushする
-
-### 4. シークレット管理の設定（Bitwarden Secrets Manager）
-
-External Secrets Operator (ESO) + Bitwarden Secrets Managerでシークレットを管理する
-
-#### 4.1 Bitwarden側の準備
-
-1. [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/)でプロジェクトを作成
-2. 以下のシークレットを作成
-   - `cloudflare-tunnel-token`: Cloudflare Tunnelトークン
-3. Machine Accountを作成し、プロジェクトへのアクセス権限を付与
-4. Access Tokenを取得
-
-#### 4.2 ClusterSecretStoreの設定
-
-ExternalSecretマニフェストを編集してBitwardenのシークレットIDを設定:
-
-```bash
-# 1. ClusterSecretStoreの設定
-#    manifests/external-secrets/store/cluster-secret-store.yaml
-#    - organizationID: Bitwarden組織ID
-#    - projectID: BitwardenプロジェクトID
-
-# 2. ExternalSecretの設定
-#    manifests/external-secrets/secrets/*.yaml
-#    - remoteRef.key: 各シークレットのBitwarden ID
+```sh
+sudo tailscale set --accept-routes=true --advertise-routes=<VM_SUBNET> --snat-subnet-routes=false
 ```
 
-#### 4.3 初回デプロイ
+Tailscale 管理画面で route approval が必要な場合は承認する。
+
+### 3. master VM のセットアップ
+
+```sh
+sudo incus exec k8s-master -- rm -rf /root/kotarnetes
+sudo incus exec k8s-master -- mkdir -p /root/kotarnetes
+sudo incus file push -r ./ k8s-master/root/kotarnetes/
+sudo incus exec k8s-master -- sh /root/kotarnetes/scripts/k8s.sh master
+```
+
+`k8s.sh master` は以下を実行する。
+
+1. ノード共通設定（swap 無効化、カーネルモジュール、containerd、kubeadm / kubelet / kubectl 導入）
+2. VM IP を使った control-plane の初期化
+3. Cilium CNI + Hubble のインストール
+4. Helm / Argo CD のインストール
+5. k9s のインストール
+6. Argo CD root application の適用（GitOps 開始）
+7. worker 参加用の `kubeadm join` コマンドを表示
+
+### 4. worker VM の参加
+
+master 完了時に表示されたコマンドを各 worker VM で実行する。
+
+```sh
+# worker1
+sudo incus exec k8s-worker1 -- rm -rf /root/kotarnetes
+sudo incus exec k8s-worker1 -- mkdir -p /root/kotarnetes
+sudo incus file push -r ./ k8s-worker1/root/kotarnetes/
+sudo incus exec k8s-worker1 -- sh /root/kotarnetes/scripts/k8s.sh worker 'kubeadm join ...'
+
+# worker2
+sudo incus exec k8s-worker2 -- rm -rf /root/kotarnetes
+sudo incus exec k8s-worker2 -- mkdir -p /root/kotarnetes
+sudo incus file push -r ./ k8s-worker2/root/kotarnetes/
+sudo incus exec k8s-worker2 -- sh /root/kotarnetes/scripts/k8s.sh worker 'kubeadm join ...'
+```
+
+worker VM 内に入って直接実行する場合は、同じ join コマンドを次の形で実行する。
+
+```sh
+cd /root/kotarnetes
+sh scripts/k8s.sh worker 'kubeadm join ...'
+```
+
+セットアップ後の確認。
+
+```sh
+sudo incus exec k8s-master -- kubectl --kubeconfig /etc/kubernetes/admin.conf get nodes -o wide
+sudo incus exec k8s-master -- kubectl --kubeconfig /etc/kubernetes/admin.conf get pods -A
+```
+
+### 5. シークレット管理（Bitwarden Secrets Manager）
+
+External Secrets Operator (ESO) + Bitwarden Secrets Manager でシークレットを管理する。
+
+#### 5.1 Bitwarden 側の準備
+
+1. [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/) でプロジェクトを作成
+2. シークレットを作成（例: `cloudflare-tunnel-token`）
+3. Machine Account を作成し、プロジェクトへのアクセス権限を付与
+4. Access Token を取得
+
+#### 5.2 マニフェストの設定
 
 ```bash
-# 1. namespaceを作成
+# ClusterSecretStore
+#   manifests/external-secrets/store/cluster-secret-store.yaml
+#   - organizationID: Bitwarden 組織 ID
+#   - projectID: Bitwarden プロジェクト ID
+
+# ExternalSecret
+#   manifests/external-secrets/secrets/*.yaml
+#   - remoteRef.key: 各シークレットの Bitwarden ID
+```
+
+#### 5.3 初回デプロイ
+
+```bash
 kubectl create namespace external-secrets
 
-# 2. Bitwarden Access TokenをSecretとして投入（初回のみ）
 kubectl create secret generic bitwarden-access-token \
   --namespace external-secrets \
   --from-literal=token=<YOUR_BWS_ACCESS_TOKEN>
 
-# 3. GitにpushしてArgo CDでデプロイ
 git push
 ```
 
-#### 4.4 デプロイ順序（sync-wave）
-
-ESO関連リソースは以下の順序でデプロイされる:
+#### 5.4 デプロイ順序（sync-wave）
 
 | Wave | リソース | 説明 |
 |------|----------|------|
-| -5 | cert-manager | TLS証明書管理 |
-| -4 | External Secrets Operator | CRDとオペレーター |
-| -3 | bitwarden-sdk-server | gRPCプロキシ（TLS対応） |
-| -2 | ClusterSecretStore | Bitwarden接続設定 |
-| -1 | ExternalSecret | K8s Secret生成 |
+| -5 | cert-manager | TLS 証明書管理 |
+| -4 | External Secrets Operator | CRD とオペレーター |
+| -3 | bitwarden-sdk-server | gRPC プロキシ（TLS 対応） |
+| -2 | ClusterSecretStore | Bitwarden 接続設定 |
+| -1 | ExternalSecret | K8s Secret 生成 |
 | 1 | valkey, rustfs, cloudflared | アプリケーション |
 
-### 5. Cloudflare Tunnelの設定
+### 6. Cloudflare Tunnel の設定
 
-External Secrets経由で自動的にシークレットが作成されるため、手動でのSecret作成は不要
+External Secrets 経由で自動的にシークレットが作成されるため、手動での Secret 作成は不要。
 
-```bash
-# Cloudflare Dashboardでトンネルを作成
-# https://one.dash.cloudflare.com/ → Zero Trust → Networks → Tunnels
-# 「Create a tunnel」からトンネルを作成し、トークンを取得
-# → Bitwarden Secrets Managerに登録
-```
+1. [Cloudflare Zero Trust](https://one.dash.cloudflare.com/) → Networks → Tunnels でトンネルを作成
+2. トークンを Bitwarden Secrets Manager に登録
 
 ## アクセス情報
 
 ### Argo CD
 
-#### Cloudflare Tunnel
-
-- URL: Cloudflare Dashboardで設定したホスト名（例: `https://argocd.example.com`）
-- Username: admin
-- Password: `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d`
-
-#### ローカルアクセス
-
 ```bash
+# ローカルアクセス
 kubectl port-forward svc/argocd-server -n argocd 8080:443
+# URL: https://localhost:8080
+# Username: admin
+# Password:
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
 ```
 
-- URL: https://localhost:8080
+Cloudflare Tunnel 経由の場合は Dashboard で設定したホスト名でアクセスする。
 
-### Kubernetes Dashboard
+### Headlamp
 
 ```bash
-kubectl port-forward -n kubernetes-dashboard svc/kubernetes-dashboard-kong-proxy 8443:443
-```
+# 物理ホストからアクセス
+sudo incus exec k8s-master -- kubectl --kubeconfig /etc/kubernetes/admin.conf -n headlamp port-forward --address 0.0.0.0 svc/headlamp 4466:80
+# URL: http://10.210.1.141:4466
 
-- URL: https://localhost:8443
+# ログイン用 token
+sudo incus exec k8s-master -- sh -lc 'kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system create serviceaccount headlamp-admin --dry-run=client -o yaml | kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f -'
+sudo incus exec k8s-master -- sh -lc 'kubectl --kubeconfig /etc/kubernetes/admin.conf create clusterrolebinding headlamp-admin-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:headlamp-admin --dry-run=client -o yaml | kubectl --kubeconfig /etc/kubernetes/admin.conf apply -f -'
+sudo incus exec k8s-master -- kubectl --kubeconfig /etc/kubernetes/admin.conf -n kube-system create token headlamp-admin
+```
 
 ### Hubble UI
 
 ```bash
 kubectl port-forward -n kube-system svc/hubble-ui 12000:80
+# URL: http://localhost:12000
 ```
-
-- URL: http://localhost:12000
 
 ## 運用
 
 ### 設定を変更する
 
-例：Lokiのレプリカ数を変更したい場合
-
 ```bash
-# 1. valuesファイルを編集
 vim manifests/monitoring/loki-values.yaml
-
-# 2. コミットしてプッシュ
-git add .
+git add manifests/monitoring/loki-values.yaml
 git commit -m "Update loki replicas"
 git push
-
-# 3. Argo CDが自動で検知して反映
-#    すぐに反映したい場合は手動Sync
+# Argo CD が自動で検知して反映
+# すぐに反映したい場合は手動 Sync
 kubectl exec -n argocd deploy/argocd-server -- argocd app sync loki
 ```
 
 ### 新しいアプリを追加する
 
-`manifests/apps/my-app.yaml` の例
+`manifests/apps/my-app.yaml` を作成する。
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
@@ -266,7 +313,7 @@ metadata:
 spec:
   project: default
   sources:
-    - repoURL: https://example.com/helm-charts  # Helmリポジトリ
+    - repoURL: https://example.com/helm-charts
       chart: my-app
       targetRevision: "*"
       helm:
@@ -289,30 +336,16 @@ spec:
 ```bash
 mkdir -p manifests/my-app
 vim manifests/my-app/values.yaml
-```
-
-```bash
-git add .
+git add manifests/apps/my-app.yaml manifests/my-app/
 git commit -m "Add my-app"
 git push
 ```
 
 ### クラスタの再作成
 
-#### VMからやり直す場合
+各物理ホストで VM を削除してから、セットアップ手順 2〜5 をやり直す。
 
 ```bash
-incus stop k8s-master k8s-worker1 k8s-worker2 && incus delete k8s-master k8s-worker1 k8s-worker2
-sh scripts/vm.sh
-newgrp incus-admin
-sh scripts/k8s.sh
-```
-
-#### Kubernetesだけやり直す場合
-
-```bash
-incus exec k8s-master -- kubeadm reset -f
-incus exec k8s-worker1 -- kubeadm reset -f
-incus exec k8s-worker2 -- kubeadm reset -f
-sh scripts/k8s.sh
+sudo incus stop <VM_NAME>
+sudo incus delete <VM_NAME>
 ```

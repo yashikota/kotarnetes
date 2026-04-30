@@ -2,20 +2,29 @@
 
 ## プロジェクト概要
 
-kotarnetes は Ubuntu 24.04 上で Incus を使って Kubernetes クラスタを構築し、Argo CD による GitOps でアプリケーションをデプロイするホームラボ環境。
+kotarnetes は物理3台の各ホスト上にIncus VMを1台ずつ作成し、そのVM内で Kubernetes クラスタを構築するホームラボ環境。Kubernetesやcontainerdなどの変更はVM内に閉じ込め、ノード間通信は物理ホストのTailscale subnet routingでVM subnet同士を接続する。
 
 ## セットアップコマンド
 
 ```bash
-# VMの作成（Incus + cloud-init）
-sh scripts/vm.sh && newgrp incus-admin
+# 各物理ホストでVMを作成
+sh scripts/vm.sh master
+sh scripts/vm.sh worker1
+sh scripts/vm.sh worker2
 
-# Kubernetesクラスタの作成
-sh scripts/k8s.sh
+# 各物理ホストでVM subnetをTailscaleに広告（scripts/vm.shが表示する値を使う）
+sudo tailscale set --advertise-routes=<VM_SUBNET> --snat-subnet-routes=false
 
-# クラスタ再作成（VMからやり直す場合）
-incus stop k8s-master k8s-worker1 k8s-worker2 && incus delete k8s-master k8s-worker1 k8s-worker2
-sh scripts/vm.sh && newgrp incus-admin && sh scripts/k8s.sh
+# 各VM内にリポジトリを配置
+sudo incus exec <VM_NAME> -- rm -rf /root/kotarnetes
+sudo incus exec <VM_NAME> -- mkdir -p /root/kotarnetes
+sudo incus file push -r ./ <VM_NAME>/root/kotarnetes/
+
+# master VMでKubernetesを初期化
+sudo incus exec k8s-master -- sh /root/kotarnetes/scripts/k8s.sh master
+
+# worker VMで参加（masterが表示したjoinコマンドを渡す）
+sudo incus exec k8s-worker1 -- sh /root/kotarnetes/scripts/k8s.sh worker 'kubeadm join <VM_IP>:6443 --token ... --discovery-token-ca-cert-hash sha256:...'
 ```
 
 ## アーキテクチャ
