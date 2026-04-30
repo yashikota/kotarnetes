@@ -238,7 +238,6 @@ init_master() {
 
   info "Allowing workloads on the control-plane node..."
   run_as_root kubectl taint nodes --all node-role.kubernetes.io/control-plane- >/dev/null 2>&1 || true
-  run_as_root kubectl taint nodes --all node-role.kubernetes.io/master- >/dev/null 2>&1 || true
   success "Control-plane node is schedulable."
 
   install_cilium_cli
