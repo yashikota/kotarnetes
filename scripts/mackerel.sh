@@ -28,8 +28,11 @@ usage() {
 Usage:
   sh scripts/mackerel.sh <MACKEREL_APIKEY> [ROLE]
 
-Install mackerel-agent and check plugins on the current host/VM for system-level
+Install mackerel-agent and check plugins on a physical host for system-level
 health monitoring (CPU, memory, disk, network, processes).
+
+This script is intended to run directly on each physical host, NOT inside
+Incus VMs. It monitors the bare-metal machine that hosts the VMs.
 
 Arguments:
   MACKEREL_APIKEY  Mackerel API key for the organization
@@ -37,11 +40,11 @@ Arguments:
                    Used to set the service/role in Mackerel.
 
 Examples:
-  # Inside an Incus VM
+  # On the master physical host
   sh scripts/mackerel.sh 'YOUR_API_KEY' master
 
-  # From the physical host via incus exec
-  sudo incus exec k8s-master -- sh /root/kotarnetes/scripts/mackerel.sh 'YOUR_API_KEY' master
+  # On worker1 physical host
+  sh scripts/mackerel.sh 'YOUR_API_KEY' worker1
 EOF
 }
 
@@ -105,33 +108,37 @@ configure_agent() {
 
   info "Configuring mackerel-agent..."
 
-  # service/role
-  if [ -n "$role" ]; then
-    if ! grep -q '^\[host_status\]' "$conf"; then
-      run_sudo tee -a "$conf" >/dev/null <<EOF
-
-# --- kotarnetes ---
-roles = ["kotarnetes:$role"]
-EOF
-    fi
+  if grep -q '# --- kotarnetes ---' "$conf"; then
+    warn "kotarnetes config already exists in $conf. Skipping."
+    return
   fi
 
-  # check plugins
-  if ! grep -q 'plugin.checks.kubelet' "$conf"; then
-    run_sudo tee -a "$conf" >/dev/null <<'EOF'
+  run_sudo tee -a "$conf" >/dev/null <<EOF
 
-# Process monitoring
-[plugin.checks.kubelet]
-command = ["check-procs", "-p", "kubelet", "-W", "1", "-C", "1"]
+# --- kotarnetes ---
+EOF
 
-[plugin.checks.containerd]
-command = ["check-procs", "-p", "containerd", "-W", "1", "-C", "1"]
+  # service/role
+  if [ -n "$role" ]; then
+    run_sudo tee -a "$conf" >/dev/null <<EOF
+roles = ["kotarnetes:$role"]
+EOF
+  fi
+
+  run_sudo tee -a "$conf" >/dev/null <<'EOF'
 
 # Disk usage (warning: 85%, critical: 95%)
 [plugin.checks.disk]
 command = ["check-disk", "-w", "85", "-c", "95"]
+
+# Incus process monitoring
+[plugin.checks.incus]
+command = ["check-procs", "-p", "incusd", "-W", "1", "-C", "1"]
+
+# Tailscale connectivity
+[plugin.checks.tailscale]
+command = ["check-procs", "-p", "tailscaled", "-W", "1", "-C", "1"]
 EOF
-  fi
 
   success "mackerel-agent configured."
 }
