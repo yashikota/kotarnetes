@@ -72,15 +72,11 @@ install_mackerel_agent() {
   fi
 
   need_cmd apt-get
+  need_cmd wget
 
-  info "Adding Mackerel apt repository..."
-  run_sudo sh -c 'wget -q -O - https://mackerel.io/file/script/setup-all-apt-v2.sh | sh'
-
-  info "Installing mackerel-agent..."
-  run_sudo apt-get install -y mackerel-agent
-
-  info "Initializing mackerel-agent..."
-  run_sudo mackerel-agent init -apikey "$apikey"
+  info "Adding Mackerel apt repository and installing mackerel-agent..."
+  wget -q -O - https://mackerel.io/file/script/setup-all-apt-v2.sh \
+    | run_sudo env MACKEREL_APIKEY="$apikey" sh
 
   success "mackerel-agent installed."
 }
