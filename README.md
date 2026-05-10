@@ -39,6 +39,7 @@ kota + kubernetes = kotarnetes
 - Prometheus
 - Loki
 - Alloy
+- Mackerel（VM ヘルスチェック）
 
 ### ツール
 
@@ -340,6 +341,27 @@ git add manifests/apps/my-app.yaml manifests/my-app/
 git commit -m "Add my-app"
 git push
 ```
+
+### VM のヘルスチェック（Mackerel）
+
+各 Incus VM に `mackerel-agent` をインストールして、VM 自体の CPU / メモリ / ディスク / プロセスを監視する。K8s クラスタ内の `mackerel-container-agent` とは別に、VM レベルのシステムメトリクスを収集する。
+
+```bash
+# 各 VM 内で実行（または incus exec 経由）
+sudo incus exec k8s-master -- sh /root/kotarnetes/scripts/mackerel.sh '<MACKEREL_APIKEY>' master
+sudo incus exec k8s-worker1 -- sh /root/kotarnetes/scripts/mackerel.sh '<MACKEREL_APIKEY>' worker1
+sudo incus exec k8s-worker2 -- sh /root/kotarnetes/scripts/mackerel.sh '<MACKEREL_APIKEY>' worker2
+```
+
+`mackerel.sh` は以下を行う。
+
+1. mackerel-agent のインストールと API キー設定
+2. mackerel-check-plugins のインストール
+3. kubelet / containerd のプロセス監視を設定
+4. ディスク使用率の監視を設定（Warning: 85%, Critical: 95%）
+5. mackerel-agent の起動と有効化
+
+インストール後は [Mackerel ダッシュボード](https://mackerel.io/my/hosts) でホストが確認できる。
 
 ### クラスタの再作成
 
